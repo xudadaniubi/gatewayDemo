@@ -1,0 +1,33 @@
+server:
+  port: 8088
+spring:
+  application:
+    name: test-gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+          lowerCaseServiceId: true
+
+      routes:
+        - id: service-feign
+          uri: lb://SERVICE-FEIGN
+          predicates:
+            - Path=/testclient/**
+          filters:
+           - StripPrefix=1  #访问路径是否包含testclient
+        - id: service-feign
+          uri: lb://SERVICE-FEIGN
+          predicates:
+            - Path=/service-feign/**
+          ilters:
+            - StripPrefix=1
+eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.cloud.client.ip-address}:${server.port}
+
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
