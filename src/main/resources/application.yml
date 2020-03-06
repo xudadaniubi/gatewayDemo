@@ -7,22 +7,48 @@ spring:
     gateway:
       discovery:
         locator:
-          enabled: false
+          enabled: true
           lowerCaseServiceId: true
-
+      #路由
       routes:
+        #id可随意 ,不能少,不能重复
         - id: service-feign
+          #转发的微服务的名称
           uri: lb://SERVICE-FEIGN
+          #断言
           predicates:
             - Path=/testclient/**
           filters:
-           - StripPrefix=1  #访问路径是否包含testclient
-        - id: service-feign
-          uri: lb://SERVICE-FEIGN
-          predicates:
-            - Path=/service-feign/**
-          ilters:
-            - StripPrefix=1
+            - StripPrefix=1  #访问路径是否包含testclient,不可缺少
+            #- name: Hystrix  #Retry为重试 ,retries:设置重试的次数,Hystrix为熔断回退
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 1
+                key-resolver: "#{@userKeyResolver}"
+                #name: defaultfallback
+                #fallbackUri: forward:/defaultfallback
+
+  #跨域
+    globalcors:
+      corsConfigurations:
+        '[/**]':
+          allowedOrigins: "*"
+          exposedHeaders:
+             - content-type
+          allowedHeaders:
+             - content-type
+          allowCredentials: true
+          allowedMethods:
+             - GET
+             - OPTIONS
+             - PUT
+             - DELETE
+             - POST
+#redis
+  redis:
+    host: 127.0.0.1
+    port: 6379
 eureka:
   instance:
     prefer-ip-address: true
@@ -31,3 +57,14 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+# 熔断器配置
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            # 全局熔断器5s超时
+            timeoutInMilliseconds: 5000
+
+
